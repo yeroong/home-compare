@@ -1,5 +1,5 @@
 /* 집어봐 — 서비스 워커. 앱 파일을 저장해 두어 오프라인·홈 화면 앱으로 동작하게 함 */
-const CACHE = 'homecmp-v8';
+const CACHE = 'homecmp-v9';
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-512-maskable.png', './assets/brand.js'];
 
 self.addEventListener('install', e => {

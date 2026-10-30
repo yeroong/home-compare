@@ -271,6 +271,12 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 .onb .skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:16px;color:var(--muted);font-weight:600;padding:8px}
 .brandcard{display:flex;align-items:center;gap:14px}
 .links{display:flex;flex-direction:column;gap:6px}
+.townhead{display:flex;align-items:center;gap:10px;padding:4px 2px}
+.post .pt{font-weight:800;font-size:16px;letter-spacing:-.01em;margin-top:8px}
+.post .pb{font-size:14px;margin-top:4px;white-space:pre-wrap;line-height:1.55}
+.psum{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--card2);border:1px solid var(--line)}
+.cmts{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.cmt{font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)}.cmt:last-of-type{border-bottom:0}
 .lk{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:12px;background:var(--card2)}
 .lk .lk-t{display:flex;align-items:center;gap:6px;font-size:14px;min-width:0}.lk .lk-t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lk .lk-u{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -288,6 +294,7 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 <nav class="tabs" id="tabs">
   <button data-go="list"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z"/></svg>매물</button>
   <button data-go="compare"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 6 0L6 7zM18 7l-3 7a3.5 3.5 0 0 0 6 0l-3-7zM8 21h8"/></svg>비교</button>
+  <button data-go="town"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M20 9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3"/></svg>동네</button>
   <button data-go="settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>설정</button>
 </nav>
 <div id="toast"></div>
@@ -299,7 +306,7 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 <script>
 'use strict';
 /* ========= 상수 ========= */
-const APP_VER='v8';
+const APP_VER='v9';
 const isDark=()=>document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);
 /* ========= 앱 설치(PWA) ========= */
 let deferredInstall=null;
@@ -369,6 +376,7 @@ const IC={
   download:'<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>',
   trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>',
   sort:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg>',
+  town:'<svg class="i" viewBox="0 0 24 24"><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M20 9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3"/></svg>',
   link:'<svg class="i" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
   copy:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
@@ -386,11 +394,12 @@ let viewIdx=0;
 let pendingPhotoTarget=null;  // {listingId, roomId}
 
 /* ========= IndexedDB ========= */
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('homecmp',1);
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('homecmp',2);
   r.onupgradeneeded=e=>{const d=e.target.result;
     if(!d.objectStoreNames.contains('listings'))d.createObjectStore('listings',{keyPath:'id'});
     if(!d.objectStoreNames.contains('photos')){const p=d.createObjectStore('photos',{keyPath:'id'});p.createIndex('listingId','listingId');p.createIndex('roomId','roomId');}
-    if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv',{keyPath:'k'});};
+    if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv',{keyPath:'k'});
+    if(!d.objectStoreNames.contains('posts')){const p=d.createObjectStore('posts',{keyPath:'id'});p.createIndex('dong','dong');}};
   r.onsuccess=e=>{db=e.target.result;res(db)};r.onerror=()=>rej(r.error);});}
 const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
 const st=(n,m='readonly')=>db.transaction(n,m).objectStore(n);
@@ -488,6 +497,8 @@ function route(){
   if(tab==='list')renderList(v);
   else if(tab==='compare')renderCompare(v);
   else if(tab==='settings')renderSettings(v);
+  else if(tab==='town')renderTown(v);
+  else if(tab==='p'){importSharedPost(p[1]);return;}
   else if(tab==='l'){const l=getL(p[1]);if(!l){go('list');return;}
     top.classList.add('has-back');
     if(p[2]==='r'){renderRoom(v,l,p[3]);}
@@ -846,6 +857,24 @@ function renderSettings(v){
     <div class="field"><label>면적 단위</label><div class="seg"><button class="${S.settings.unit==='평'?'on':''}" data-act="unit" data-val="평">평</button><button class="${S.settings.unit==='m2'?'on':''}" data-act="unit" data-val="m2">㎡</button></div></div>
     <div class="field"><label>화면</label><div class="seg">${[['','기기 따라'],['light','밝게'],['dark','어둡게']].map(t=>`<button class="${(S.settings.theme||'')===t[0]?'on':''}" data-act="theme" data-val="${t[0]}">${t[1]}</button>`).join('')}</div></div>
   </div>
+  <div class="card"><h2><span class="t">${IC.town}동네</span><span class="sub">동네 탭에서 쓰는 이름</span></h2>
+    <div class="grid2">
+      <div class="field"><label>우리 동네 (동 이름)</label><input class="inp" data-s="dong" value="${esc(S.settings.dong||'')}" placeholder="역삼동"></div>
+      <div class="field"><label>닉네임</label><input class="inp" data-s="nick" value="${esc(S.settings.nick||'')}" placeholder="옆집 이웃"></div>
+    </div>
+    <div class="hint">동네 글은 기본적으로 <b>링크로 공유</b>합니다(서버 없음, 단톡방·카카오톡으로 보내면 상대 앱에 들어옵니다). 여러 이웃이 한 게시판을 같이 보려면 아래 동네 서버를 연결하세요.</div>
+    <details style="margin-top:10px"><summary class="small" style="font-weight:700;cursor:pointer;color:var(--accent)">동네 서버 연결 (선택 · Supabase 무료)</summary>
+      <div class="field" style="margin-top:8px"><label>프로젝트 URL</label><input class="inp" id="sbUrl" value="${esc(S.secret.sbUrl||'')}" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+      <div class="field"><label>anon 키</label><input class="inp" type="password" id="sbKey" value="${esc(S.secret.sbKey||'')}" placeholder="eyJ…" autocomplete="off"></div>
+      <div class="row wrap"><button class="btn sm" data-act="sbSave">연결 저장</button><button class="btn sm ghost" data-act="sbTest">연결 확인</button><button class="btn sm ghost" data-act="sbClear">끊기</button><span class="small muted">${S.secret.sbUrl&&S.secret.sbKey?'연결 설정됨':'없음'}</span></div>
+      <div class="hint">supabase.com 에서 무료 프로젝트를 만들고 SQL Editor 에 아래를 붙여 넣어 표를 만든 뒤, Settings → API 의 URL 과 anon 키를 넣으세요. 같은 서버·같은 동 이름을 쓰는 이웃끼리 글이 보입니다. 누구나 쓰고 지울 수 있는 열린 게시판이니 아는 이웃끼리만 쓰세요.</div>
+      <textarea class="inp" readonly style="font-size:11px;font-family:monospace;min-height:120px;margin-top:6px" onclick="this.select()">create table posts (id text primary key, dong text, nick text, kind text, title text, text text, sum jsonb, device text, created_at timestamptz default now());
+create table comments (id text primary key, post_id text references posts(id) on delete cascade, nick text, text text, device text, created_at timestamptz default now());
+alter table posts enable row level security; alter table comments enable row level security;
+create policy "p_read" on posts for select using (true); create policy "p_ins" on posts for insert with check (true); create policy "p_del" on posts for delete using (true);
+create policy "c_read" on comments for select using (true); create policy "c_ins" on comments for insert with check (true);</textarea>
+    </details>
+  </div>
   <div class="card"><h2><span class="t">${IC.star}종합 점수 가중치</span><span class="sub">합계 ${wsum}</span></h2>
     <div class="grid2">${Object.keys(CAT_LABEL).map(k=>`<div class="field"><label>${CAT_LABEL[k]}</label><div class="unit"><input inputmode="numeric" data-w="${k}" value="${esc(w[k])}"><span>%</span></div></div>`).join('')}</div>
     <div class="hint">비용 = 매물끼리 월 실질 비용 상대 비교(2개 이상일 때) · 입지 = 입지 점검 + 출퇴근 시간 · 상태 = 집 전체·공간 점검 · 안전 = 안전·계약 확인 + 전세가율. 내가 중요하게 보는 것에 비중을 더 주세요.</div>
@@ -1076,6 +1105,18 @@ document.addEventListener('click',async e=>{
     case 'opt':{fix(l);const o=l.cond.options;const i=o.indexOf(t.dataset.val);if(i>=0)o.splice(i,1);else o.push(t.dataset.val);saveListing(l);rerender();return;}
     case 'brokerFill':{fix(l);l.init.broker=brokerFee(l);saveListing(l);rerender();return;}
     case 'gocmp':go('compare');return;
+    case 'sbSave':{S.secret.sbUrl=($('#sbUrl').value||'').trim().replace(/\/$/,'');S.secret.sbKey=($('#sbKey').value||'').trim();await dbPut('kv',{k:'secret',v:S.secret});toast(sb.on()?'동네 서버를 저장했습니다':'URL 과 키를 모두 넣어 주세요');rerender();return;}
+    case 'sbClear':{S.secret.sbUrl='';S.secret.sbKey='';await dbPut('kv',{k:'secret',v:S.secret});toast('서버 연결을 끊었습니다');rerender();return;}
+    case 'sbTest':{if(!sb.on()){toast('먼저 연결 저장을 누르세요');return;}try{const r=await sb.req('posts?select=id&limit=1');toast('연결 성공 (글 '+(Array.isArray(r)?r.length:0)+'개 확인)');}catch(e){alert('연결 실패: '+e.message+'\n표(posts·comments)가 만들어졌는지, URL·키가 맞는지 확인하세요.');}return;}
+    case 'pWrite':{openCompose();return;}
+    case 'pKind':{compose.kind=t.dataset.val;drawCompose();return;}
+    case 'pPost':{await submitPost();return;}
+    case 'pShare':{const p=townPosts.find(x=>x.id===t.dataset.pid);if(p)sharePost(p);return;}
+    case 'pDel':{const p=townPosts.find(x=>x.id===t.dataset.pid);if(!p||!confirm('이 글을 지울까요?'))return;await dbDel('posts',p.id);if(p.src==='server'&&sb.on()){try{await sb.del(p.id);}catch(e){toast('서버에서 지우지 못했습니다: '+e.message);}}townPosts=townPosts.filter(x=>x.id!==p.id);rerender();return;}
+    case 'pImport':{const p=townPosts.find(x=>x.id===t.dataset.pid);if(!p||!p.sum)return;const nl=newListing();Object.assign(nl,{name:(p.sum.name||p.title||'이웃이 본 집')+' (받음)',type:p.sum.type||'월세',deposit:p.sum.deposit||'',rent:p.sum.rent||'',price:p.sum.price||'',areaNet:p.sum.areaNet||'',areaSupply:p.sum.areaSupply||'',floor:p.sum.floor||'',direction:p.sum.direction||'',addr:p.sum.addr||'',pros:p.sum.pros||'',cons:p.sum.cons||'',memo:'동네 글에서 받음 · '+(p.nick||'이웃')+' · '+p.dong,fees:p.sum.fees||{},links:(p.sum.links||[]).map(k=>({id:uid(),label:k.label,url:k.url,createdAt:Date.now()}))});S.listings.push(nl);await dbPut('listings',nl);toastM('내 매물에 담았어요');go('l/'+nl.id+'/basic');return;}
+    case 'pCmts':{const p=townPosts.find(x=>x.id===t.dataset.pid);if(!p)return;const box=$('#cm-'+p.id);box.innerHTML='<span class="spin"></span>';try{const cs=await sb.comments(p.id);box.innerHTML=cmtsHtml(p,cs);}catch(e){box.innerHTML='<div class="small muted">댓글을 못 불러왔습니다: '+esc(e.message)+'</div>';}return;}
+    case 'pCmtAdd':{const p=townPosts.find(x=>x.id===t.dataset.pid);const inp=$('#ci-'+p.id);const txt=(inp.value||'').trim();if(!txt)return;try{await sb.comment(p.id,txt);inp.value='';const cs=await sb.comments(p.id);$('#cm-'+p.id).innerHTML=cmtsHtml(p,cs);}catch(e){toast('댓글을 못 올렸습니다: '+e.message);}return;}
+    case 'pRefresh':{rerender();return;}
     case 'lkAdd':{fix(l);const u=normUrl($('#lkUrl').value);const okUrl=/^[a-z][a-z0-9+.-]*:\/\/\S+$/i.test(u)&&(!/^https?:/i.test(u)||/^https?:\/\/[^\s\/]+\.[^\s\/]+/i.test(u));if(!u||!okUrl){toast('주소를 확인해 주세요 (예: https://www.zigbang.com/…)');return;}
       const label=($('#lkLabel').value||'').trim()||linkKind(u)[1];l.links.push({id:uid(),label,url:u,createdAt:Date.now()});saveListing(l);rerender();toast('링크를 담았습니다');return;}
     case 'lkDel':{fix(l);const k=l.links.find(x=>x.id===t.dataset.lk);if(!k||!confirm(`"${k.label}" 링크를 지울까요?`))return;l.links=l.links.filter(x=>x.id!==t.dataset.lk);saveListing(l);rerender();return;}
@@ -1276,6 +1317,69 @@ $('#fileImp').addEventListener('change',e=>{if(e.target.files[0])importData(e.ta
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='lkUrl'){e.preventDefault();$('[data-act="lkAdd"]')?.click();return;}if($('#viewer')){if(e.key==='Escape')closeViewer();if(e.key==='ArrowLeft')nextPhoto(-1);if(e.key==='ArrowRight')nextPhoto(1);}});
 function applyTheme(){const th=S.settings.theme||'';if(th)document.documentElement.dataset.theme=th;else delete document.documentElement.dataset.theme;}
 
+/* ========= 동네 (이웃과 집 얘기 나누기) ========= */
+const POST_KINDS=[['home','이 집 어때?'],['ask','물어볼게요'],['news','동네 소식']];
+let townPosts=[];const compose={kind:'home',lid:''};
+const b64u={enc:str=>btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),dec:b=>decodeURIComponent(escape(atob(b.replace(/-/g,'+').replace(/_/g,'/'))))};
+function timeAgo(t){const d=(Date.now()-t)/1000;if(d<60)return '방금';if(d<3600)return Math.floor(d/60)+'분 전';if(d<86400)return Math.floor(d/3600)+'시간 전';if(d<86400*7)return Math.floor(d/86400)+'일 전';return dateStr(t);}
+/* 매물 → 공유용 요약(사진·등기부 숫자·정확한 주소는 뺌) */
+function summarize(l){const r=jeonseRatio(l);return {name:l.name,type:l.type,deposit:l.deposit,rent:l.rent,price:l.price,areaNet:l.areaNet,areaSupply:l.areaSupply,floor:l.floor,direction:l.direction,addr:(l.addr||'').split(' ').slice(0,2).join(' '),monthly:Math.round(monthly(l)*10)/10,score:homeScore(l),ratioLevel:ratioLevel(r),pros:l.pros,cons:l.cons,fees:l.fees,links:(l.links||[]).slice(0,5).map(k=>({label:k.label,url:k.url}))};}
+const sb={on:()=>!!(S.secret.sbUrl&&S.secret.sbKey),
+  async req(path,opt={}){const r=await fetch(S.secret.sbUrl+'/rest/v1/'+path,Object.assign({},opt,{headers:Object.assign({apikey:S.secret.sbKey,Authorization:'Bearer '+S.secret.sbKey,'Content-Type':'application/json',Prefer:'return=representation'},opt.headers||{})}));if(!r.ok){let m='서버 응답 '+r.status;try{const j=await r.json();m+=' · '+(j.message||j.hint||'');}catch(e){}throw new Error(m);}return r.status===204?null:r.json();},
+  list:dong=>sb.req('posts?dong=eq.'+encodeURIComponent(dong)+'&order=created_at.desc&limit=100'),
+  add:p=>sb.req('posts',{method:'POST',body:JSON.stringify([{id:p.id,dong:p.dong,nick:p.nick,kind:p.kind,title:p.title,text:p.text,sum:p.sum||null,device:S.settings.deviceId}])}),
+  del:id=>sb.req('posts?id=eq.'+encodeURIComponent(id)+'&device=eq.'+encodeURIComponent(S.settings.deviceId),{method:'DELETE',headers:{Prefer:'return=minimal'}}),
+  comments:pid=>sb.req('comments?post_id=eq.'+encodeURIComponent(pid)+'&order=created_at.asc'),
+  comment:(pid,text)=>sb.req('comments',{method:'POST',body:JSON.stringify([{id:uid(),post_id:pid,nick:S.settings.nick||'이웃',text,device:S.settings.deviceId}])})};
+function sumHtml(p){const m=p.sum;if(!m)return '';const pl=m.type==='매매'?'매매 '+fmtMan(m.price):m.type==='전세'?'전세 '+fmtMan(m.deposit):'보증금 '+fmtMan(m.deposit)+' / 월 '+fmtMan(m.rent);
+  return `<div class="psum"><div class="row" style="gap:6px"><span class="badge ${esc(m.type||'')}">${esc(m.type||'')}</span><b>${pl}</b>${m.ratioLevel?`<span class="chip ${m.ratioLevel}">전세가율 ${m.ratioLevel==='bad'?'위험':m.ratioLevel==='warn'?'주의':'양호'}</span>`:''}</div>
+    <div class="small muted" style="margin-top:3px">${esc(m.name||'')}${m.addr?' · '+esc(m.addr):''}${m.areaNet?' · 전용 '+areaStr(+m.areaNet):''}${m.floor?' · '+esc(m.floor)+'층':''}${m.direction?' · '+esc(m.direction)+'향':''}</div>
+    <div class="small" style="margin-top:3px">월 실질 <b>${fmtMan1(m.monthly)}</b>${m.score?' · 점수 <b>'+m.score+'</b>':''}</div>
+    ${m.pros?`<div class="small" style="margin-top:4px"><span class="chip good">좋아요</span> ${esc(m.pros)}</div>`:''}${m.cons?`<div class="small" style="margin-top:4px"><span class="chip warn">아쉬워요</span> ${esc(m.cons)}</div>`:''}
+    ${(m.links||[]).length?`<div class="row wrap" style="margin-top:6px">${m.links.map(k=>`<a class="chip neutral" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(k.url)}">${esc(k.label||linkKind(k.url)[1])}</a>`).join('')}</div>`:''}</div>`;}
+function cmtsHtml(p,cs){return `<div class="cmts">${cs.length?cs.map(c=>`<div class="cmt"><b>${esc(c.nick||'이웃')}</b> <span class="xs muted">${timeAgo(new Date(c.created_at).getTime())}</span><div>${esc(c.text)}</div></div>`).join(''):'<div class="small muted">첫 댓글을 남겨 보세요</div>'}
+  <div class="row" style="margin-top:6px"><input class="inp grow" id="ci-${p.id}" placeholder="댓글" style="height:38px"><button class="btn sm" data-act="pCmtAdd" data-pid="${p.id}">올리기</button></div></div>`;}
+async function renderTown(v){
+  const dong=S.settings.dong||'';$('#title').textContent=dong?dong+' 집 얘기':'동네 집 얘기';
+  $('#topActs').innerHTML=`<button data-act="pWrite">${IC.plus}글쓰기</button>`;
+  const local=await dbAll('posts');let posts=local.filter(p=>!dong||!p.dong||p.dong===dong);let serverNote='';
+  if(sb.on()&&dong){try{const sv=await sb.list(dong);const ids=new Set(posts.map(p=>p.id));sv.forEach(r=>{if(!ids.has(r.id))posts.push({id:r.id,dong:r.dong,nick:r.nick,kind:r.kind,title:r.title,text:r.text,sum:r.sum,createdAt:new Date(r.created_at).getTime(),src:'server',mine:r.device===S.settings.deviceId});else{const p=posts.find(x=>x.id===r.id);p.src='server';}});serverNote='동네 서버 연결됨 · 글 '+sv.length+'개';}catch(e){serverNote='서버 연결 실패: '+e.message;}}
+  posts.sort((a,b)=>b.createdAt-a.createdAt);townPosts=posts;
+  let html=`<div class="townhead"><div class="grow"><div class="small muted">${dong?'우리 동네':'동네를 설정하면 글이 동네별로 모여요'}</div><div style="font-weight:800;font-size:17px;letter-spacing:-.02em">${esc(dong||'동네 미설정')} <button class="xs" data-go="settings" style="color:var(--accent);font-weight:700;margin-left:4px">바꾸기</button></div></div>${BRAND.mascot('point',56)}</div>
+    <div class="small muted" style="margin:6px 0 12px">${sb.on()?esc(serverNote||'동네 서버 연결됨'):'링크 공유 모드 · 글을 쓰고 <b>공유</b>로 이웃에게 보내면 상대 집어봐에 들어와요'}${sb.on()?' <button class="xs" data-act="pRefresh" style="color:var(--accent);font-weight:700">새로고침</button>':''}</div>`;
+  if(!posts.length)html+=`<div class="empty"><div style="margin:0 auto 4px">${BRAND.mascot('wink',140)}</div><b>우리 동네 집 얘기, 여기서 나눠요</b><div class="small" style="margin-top:6px">본 집을 올리면 "이 집 어때?" 하고 물어볼 수 있고,<br>이웃이 보낸 집은 내 매물로 바로 담깁니다.</div><div style="margin-top:14px"><button class="btn" data-act="pWrite">${IC.plus}첫 글 쓰기</button></div></div>`;
+  html+=posts.map(p=>{const k=POST_KINDS.find(x=>x[0]===p.kind)||POST_KINDS[0];
+    return `<div class="card post"><div class="row" style="justify-content:space-between;gap:8px"><span class="chip ${p.kind==='home'?'good':p.kind==='ask'?'warn':'neutral'}">${k[1]}</span><span class="xs muted">${esc(p.nick||'이웃')} · ${esc(p.dong||'')} · ${timeAgo(p.createdAt)}${p.src==='link'?' · 받은 글':p.src==='server'?'':' · 내 폰'}</span></div>
+      <div class="pt">${esc(p.title||'')}</div>${p.text?`<div class="pb">${esc(p.text)}</div>`:''}${sumHtml(p)}
+      <div class="row wrap" style="margin-top:10px;gap:6px"><button class="btn sm ghost" data-act="pShare" data-pid="${p.id}">${IC.link.replace('class="i"','class="i s"')}공유</button>${p.sum?`<button class="btn sm sec" data-act="pImport" data-pid="${p.id}">내 매물로 담기</button>`:''}${p.src==='server'?`<button class="btn sm ghost" data-act="pCmts" data-pid="${p.id}">댓글</button>`:''}${p.mine||p.src!=='server'?`<button class="btn sm ghost" data-act="pDel" data-pid="${p.id}" style="color:var(--bad);margin-left:auto">삭제</button>`:''}</div>
+      <div id="cm-${p.id}"></div></div>`;}).join('');
+  v.innerHTML=html;
+}
+function openCompose(){compose.kind='home';compose.lid=S.listings[0]?S.listings[0].id:'';showSheet();$('.sheet .hd span').textContent='동네에 글쓰기';drawCompose();}
+function drawCompose(){const bd=$('#sheetBd');if(!bd)return;const titleV=$('#cpTitle')?.value||'',textV=$('#cpText')?.value||'';
+  bd.innerHTML=`<div class="field"><label>어떤 글이에요?</label><div class="seg">${POST_KINDS.map(k=>`<button class="${compose.kind===k[0]?'on':''}" data-act="pKind" data-val="${k[0]}">${k[1]}</button>`).join('')}</div></div>
+    ${compose.kind==='home'?`<div class="field"><label>어느 집이에요?</label><select class="inp" id="cpLid">${S.listings.map(l=>`<option value="${l.id}" ${compose.lid===l.id?'selected':''}>${esc(l.name)} · ${priceLine(l)}</option>`).join('')}<option value="" ${!compose.lid?'selected':''}>매물 없이 글만</option></select><div class="hint" style="margin-top:4px">가격·면적·월 비용·점수·장단점·링크만 같이 나가고, 사진·등기부 숫자·상세 주소는 안 나갑니다.</div></div>`:''}
+    <div class="field"><label>제목</label><input class="inp" id="cpTitle" value="${esc(titleV)}" placeholder="${compose.kind==='home'?'역삼동 투룸 이 가격 괜찮을까요?':compose.kind==='ask'?'이 동네 밤에 시끄러운가요?':'우리 동네 주차 꿀팁'}"></div>
+    <div class="field"><label>내용</label><textarea class="inp" id="cpText" placeholder="이웃에게 하고 싶은 말">${esc(textV)}</textarea></div>`;
+  $('#sheetFt').innerHTML=`<button class="btn ghost" data-act="sheetClose" style="flex:1">취소</button><button class="btn" data-act="pPost" style="flex:2">${sb.on()?'동네에 올리기':'올리고 공유하기'}</button>`;}
+async function submitPost(){const title=($('#cpTitle').value||'').trim();if(!title){toast('제목을 적어 주세요');return;}
+  const lid=compose.kind==='home'?($('#cpLid')?.value||''):'';const l=lid?getL(lid):null;
+  const post={id:uid(),dong:S.settings.dong||'우리 동네',nick:S.settings.nick||'이웃',kind:compose.kind,title,text:($('#cpText').value||'').trim(),sum:l?summarize(l):null,createdAt:Date.now(),mine:true,src:'local'};
+  await dbPut('posts',post);
+  if(sb.on()){try{await sb.add(post);post.src='server';await dbPut('posts',post);toastM('동네에 올렸어요');}catch(e){alert('서버에 올리지 못해 내 폰에만 저장했습니다: '+e.message);}}
+  $('.sheet-bg')?.remove();rerender();
+  if(!sb.on()){setTimeout(()=>sharePost(post),300);}}
+function postUrl(p){const d={id:p.id,dong:p.dong,nick:p.nick,kind:p.kind,title:p.title,text:p.text,sum:p.sum,createdAt:p.createdAt};return location.origin+location.pathname+'#p/'+b64u.enc(JSON.stringify(d));}
+async function sharePost(p){const url=postUrl(p);const m=p.sum;const sumT=m?'\n'+(m.type||'')+' '+(m.type==='매매'?fmtMan(m.price):m.type==='전세'?fmtMan(m.deposit):fmtMan(m.deposit)+'/'+fmtMan(m.rent))+(m.areaNet?' · 전용 '+areaStr(+m.areaNet):'')+' · 월 '+fmtMan1(m.monthly):'';
+  const text='[집어봐] '+p.title+(p.text?'\n'+p.text:'')+sumT+'\n링크를 열면 집어봐 앱에 그대로 들어와요.';
+  if(navigator.share){try{await navigator.share({title:'집어봐 · '+p.title,text,url});return;}catch(e){if(e.name==='AbortError')return;}}
+  try{await navigator.clipboard.writeText(text+'\n'+url);toast('글과 링크를 복사했습니다. 단톡방에 붙여 넣으세요');}catch(e){prompt('복사해서 보내세요',url);}}
+async function importSharedPost(b){try{const d=JSON.parse(b64u.dec(b));if(!d||!d.id||!d.title)throw new Error('형식');
+    const ex=await dbGet('posts',d.id);if(!ex){await dbPut('posts',Object.assign(d,{src:'link',mine:false,createdAt:d.createdAt||Date.now()}));toastM('이웃의 집 얘기를 받았어요');}else toast('이미 받은 글이에요');
+    if(d.dong&&!S.settings.dong){S.settings.dong=d.dong;saveSettings();}
+  }catch(e){toast('공유 링크를 읽지 못했습니다');}
+  history.replaceState(null,'','#town');route();}
+
 /* ========= 온보딩(첫 실행) ========= */
 let onbIdx=0;
 const ONB=[
@@ -1288,7 +1392,7 @@ function drawOnb(){const el=$('#onb');if(!el)return;const x=ONB[onbIdx];
   el.innerHTML=`<button class="skip" data-act="onbDone">건너뛰기</button><div class="art">${x.art}</div><h3>${x.h}</h3><p>${x.p}</p><div class="dots">${ONB.map((_,i)=>`<i class="${i===onbIdx?'on':''}"></i>`).join('')}</div><div class="btns">${onbIdx<ONB.length-1?`<button class="btn" style="flex:1" data-act="onbNext">다음</button>`:`<button class="btn" style="flex:1" data-act="onbDone">시작하기</button>`}</div>`;}
 
 /* ========= 시작 ========= */
-async function loadAll(){S.listings=(await dbAll('listings')).map(fix);const kv=await dbGet('kv','settings');S.settings=Object.assign({rate:4,unit:'평',compare:[],sort:'created',theme:'',weights:{cost:25,site:25,cond:30,safe:20}},kv?kv.v:{});const sc=await dbGet('kv','secret');S.secret=Object.assign({apiKey:'',geminiKey:''},sc?sc.v:{});applyTheme();}
+async function loadAll(){S.listings=(await dbAll('listings')).map(fix);const kv=await dbGet('kv','settings');S.settings=Object.assign({rate:4,unit:'평',compare:[],sort:'created',theme:'',weights:{cost:25,site:25,cond:30,safe:20}},kv?kv.v:{});const sc=await dbGet('kv','secret');S.secret=Object.assign({apiKey:'',geminiKey:'',sbUrl:'',sbKey:''},sc?sc.v:{});if(!S.settings.deviceId){S.settings.deviceId=uid()+uid();saveSettings();}applyTheme();}
 (async()=>{try{await openDB();await loadAll();}catch(e){document.body.innerHTML=`<div class="empty">저장소를 열 수 없습니다.<br><small>${esc(e.message)}</small><br><br>Chrome 또는 Safari 에서 열어 주세요.</div>`;return;}
   if(!location.hash)location.hash='#list';else route();
   if(!(await dbGet('kv','onboarded')))showOnboarding();
