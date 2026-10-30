@@ -145,6 +145,7 @@ textarea.inp{height:auto;min-height:80px;padding:10px 12px;resize:vertical}
 .kinds{display:flex;flex-wrap:wrap;gap:8px}
 .kinds button{height:38px;padding:0 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-weight:600;display:flex;align-items:center;gap:6px}
 .kinds button i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.kinds button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
 
 /* 사진 */
 .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -211,7 +212,7 @@ table.cmp td .mini{display:block;font-size:11px;color:var(--muted);font-weight:4
 <script>
 'use strict';
 /* ========= 상수 ========= */
-const APP_VER='v2';
+const APP_VER='v3';
 /* ========= 앱 설치(PWA) ========= */
 let deferredInstall=null;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -243,6 +244,7 @@ const ROOM_CHECKS={
 const HOME_CHECKS=[['외부 소음','심함','조용'],['층간 소음','심함','조용'],['보안·CCTV','없음','좋음'],['엘리베이터','없음','있음·빠름'],['주차','불가','여유'],['역·정류장','멀다','가깝다'],['마트·편의','불편','편리'],['벌레·위생','나쁨','좋음'],['건물 상태','낡음','양호'],['집주인·관리','불친절','친절']];
 const FEES=[['common','공용관리비'],['water','수도'],['gas','가스(평균)'],['elec','전기(평균)'],['internet','인터넷·TV'],['parking','주차'],['other','기타']];
 const DIRS=['','남','남동','남서','동','서','북','북동','북서'];
+const LOANS=['중소기업청년 전세대출','버팀목 전세대출','신혼부부 버팀목','청년 버팀목','디딤돌 구입자금','보금자리론','은행 일반 대출'];
 
 /* ========= 상태 ========= */
 const S={listings:[],settings:{rate:4,unit:'평',compare:[]}};
@@ -285,10 +287,19 @@ function areaBoth(m2){m2=+m2||0;if(!m2)return '-';return m2.toFixed(1)+'㎡ · '
 const roomArea=r=>(+r.w||0)*(+r.d||0)/10000;
 const roomChecks=k=>ROOM_CHECKS[k]||ROOM_CHECKS.default;
 function feesSum(l){return Object.values(l.fees||{}).reduce((a,b)=>a+(+b||0),0);}
-function monthly(l){const r=(+S.settings.rate||0)/100/12,f=feesSum(l);
-  if(l.type==='매매')return (+l.price||0)*r+f;
-  if(l.type==='전세')return (+l.deposit||0)*r+f;
-  return (+l.rent||0)+(+l.deposit||0)*r+f;}
+const loanInt=l=>(+l.loan||0)*(+l.loanRate||0)/1200;           // 월 대출 이자
+function ownCash(l){const base=l.type==='매매'?+l.price||0:+l.deposit||0;return Math.max(base-(+l.loan||0),0);} // 자기 자금
+const ownInt=l=>ownCash(l)*(+S.settings.rate||0)/1200;           // 자기 자금 기회비용(월)
+function monthly(l){return (l.type==='월세'?(+l.rent||0):0)+loanInt(l)+ownInt(l)+feesSum(l);}
+function costCard(l){const own=ownCash(l),base=l.type==='매매'?'매매가':'보증금';
+  const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${fmtMan1(v)}</b></div>`;
+  return `<div class="card" id="costCard"><h2>월 실질 비용</h2>
+    ${l.type==='월세'?kv('월세',+l.rent||0):''}
+    ${+l.loan?kv(`대출 이자 <span class="small muted">${fmtMan(l.loan)} × 연 ${+l.loanRate||0}%</span>`,loanInt(l)):''}
+    ${kv(`자기 자금 환산 <span class="small muted">${base}${+l.loan?' − 대출':''} ${fmtMan(own)} × 연 ${S.settings.rate}%</span>`,ownInt(l))}
+    ${kv('관리비 합계',feesSum(l))}
+    <div class="total"><span>합계 / 월</span><span class="n">${fmtMan1(monthly(l))}</span></div>
+    <div class="hint">대출 이자는 입력한 금리로, ${base}에서 대출을 뺀 자기 자금은 설정의 연이율(${S.settings.rate}%)로 월 비용에 환산해 다른 유형과 비교합니다.</div></div>`;}
 function priceLine(l){
   if(l.type==='매매')return '매매 '+fmtMan(l.price);
   if(l.type==='전세')return '전세 '+fmtMan(l.deposit);
@@ -304,7 +315,7 @@ function dropURL(id){['','_t'].forEach(s=>{const k=id+s;if(urlCache.has(k)){URL.
 function dateStr(t){const d=new Date(t);return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');}
 
 function newListing(){const n=S.listings.length+1;return {id:uid(),name:'매물 '+n,type:'월세',addr:'',floor:'',totalFloors:'',direction:'',moveIn:'',visitedAt:new Date().toISOString().slice(0,10),
-  deposit:'',rent:'',price:'',areaSupply:'',areaNet:'',fees:{},feeMemo:'',rooms:DEFAULT_ROOMS.map(k=>({id:uid(),kind:k,name:k,w:'',d:'',h:230,scores:{},memo:''})),
+  deposit:'',rent:'',price:'',loanName:'',loan:'',loanRate:'',areaSupply:'',areaNet:'',fees:{},feeMemo:'',rooms:DEFAULT_ROOMS.map(k=>({id:uid(),kind:k,name:k,w:'',d:'',h:230,scores:{},memo:''})),
   checks:{},pros:'',cons:'',memo:'',createdAt:Date.now(),updatedAt:Date.now()};}
 
 /* ========= 라우팅 ========= */
@@ -355,7 +366,7 @@ async function renderList(v){
         <div class="nm">${esc(l.name)}</div>
         <div class="pr">${priceLine(l)}</div>
         <div class="mt">전용 ${areaStr(l.areaNet)}${l.floor?` · ${esc(l.floor)}층`:''}${l.direction?` · ${esc(l.direction)}향`:''}${cnt[l.id]?` · 📷 ${cnt[l.id]}`:''}</div>
-        <div class="mt">월 실질 <b>${fmtMan1(monthly(l))}</b>${sc?` · 점수 <b>${sc}</b>`:''}</div>
+        <div class="mt">월 실질 <b>${fmtMan1(monthly(l))}</b>${+l.loan?` <span class="small">(이자 ${fmtMan1(loanInt(l))})</span>`:''}${sc?` · 점수 <b>${sc}</b>`:''}</div>
       </div>
       <label class="cmp" data-act="noop"><input type="checkbox" data-act="cmp" data-id="${l.id}" ${cmpSet.has(l.id)?'checked':''}>비교</label>
     </div>`;}).join(''));
@@ -399,15 +410,19 @@ async function renderListing(v,l,tab){
     <div class="card"><h2>관리비·고정 지출 <span class="sub">만원/월</span></h2>
       <div class="grid2">${FEES.map(x=>`<div class="field"><label>${x[1]}</label><div class="unit"><input inputmode="decimal" data-f="fees.${x[0]}" value="${esc(f[x[0]]??'')}" placeholder="0"><span>만</span></div></div>`).join('')}</div>
       <div class="field"><label>관리비 포함 항목·메모</label><input class="inp" data-f="feeMemo" value="${esc(l.feeMemo)}" placeholder="예: 수도·인터넷 포함, 겨울 가스 20만"></div>
-      <div class="total"><span>관리비 합계</span><span class="n">${fmtMan1(feesSum(l))}</span></div>
+      <div class="total"><span>관리비 합계</span><span class="n" id="feeTotal">${fmtMan1(feesSum(l))}</span></div>
     </div>
-    <div class="card"><h2>월 실질 비용</h2>
-      <div class="kv"><span>${l.type==='월세'?'월세':l.type==='전세'?'보증금 환산':'매매가 환산'}</span><b>${fmtMan1(l.type==='월세'?+l.rent||0:l.type==='전세'?(+l.deposit||0)*S.settings.rate/1200:(+l.price||0)*S.settings.rate/1200)}</b></div>
-      ${l.type==='월세'?`<div class="kv"><span>보증금 환산 (연 ${S.settings.rate}%)</span><b>${fmtMan1((+l.deposit||0)*S.settings.rate/1200)}</b></div>`:''}
-      <div class="kv"><span>관리비 합계</span><b>${fmtMan1(feesSum(l))}</b></div>
-      <div class="total"><span>합계 / 월</span><span class="n">${fmtMan1(monthly(l))}</span></div>
-      <div class="hint">보증금·매매가는 설정의 연이율(${S.settings.rate}%)로 월 비용에 환산해 다른 유형과 비교합니다.</div>
+    <div class="card"><h2>대출 <span class="sub">중기청 · 버팀목 · 디딤돌 등</span></h2>
+      <div class="field"><label>대출 상품</label><div class="kinds">${LOANS.map(n=>`<button data-act="loanName" data-val="${esc(n)}" class="${l.loanName===n?'on':''}">${esc(n)}</button>`).join('')}</div>
+        <input class="inp" data-f="loanName" value="${esc(l.loanName)}" placeholder="또는 직접 입력" style="margin-top:8px"></div>
+      <div class="grid2">
+        <div class="field"><label>대출 금액</label><div class="unit"><input inputmode="numeric" data-f="loan" value="${esc(l.loan)}" placeholder="0"><span>만원</span></div></div>
+        <div class="field"><label>대출 금리</label><div class="unit"><input inputmode="decimal" data-f="loanRate" value="${esc(l.loanRate)}" placeholder="예: 2.0"><span>% / 년</span></div></div>
+      </div>
+      <div class="total"><span>월 이자</span><span class="n" id="loanInt">${fmtMan1(loanInt(l))}</span></div>
+      <div class="hint">월 이자 = 대출 금액 × 금리 ÷ 12. 승인받은 실제 금리를 넣으세요. 원금 상환은 월 비용에 넣지 않습니다.</div>
     </div>
+    ${costCard(l)}
     <div class="card">
       <div class="field"><label>장점</label><textarea class="inp" data-f="pros" placeholder="역 5분, 남향, 신축">${esc(l.pros)}</textarea></div>
       <div class="field"><label>단점</label><textarea class="inp" data-f="cons" placeholder="수압 약함, 주차 불편">${esc(l.cons)}</textarea></div>
@@ -506,7 +521,13 @@ function renderCompare(v){
   row('월세',ls.map(l=>l.type==='월세'?+l.rent||0:0),x=>x?fmtMan(x):'-','low');
   row('관리비 합계',ls.map(feesSum),fmtMan1,'low');
   FEES.forEach(f=>{const vals=ls.map(l=>+(l.fees||{})[f[0]]||0);if(vals.some(x=>x))row('  '+f[1],vals,x=>x?fmtMan1(x):'-','low');});
-  row('월 실질 비용',ls.map(monthly),fmtMan1,'low',`보증금·매매가 연 ${S.settings.rate}% 환산 포함`);
+  if(ls.some(l=>+l.loan)){sec('대출');
+    row('대출 상품',ls.map(l=>l.loanName||''),x=>`<span style="white-space:normal;display:block;max-width:140px;text-align:right;font-size:13px">${esc(x||'-')}</span>`);
+    row('대출 금액',ls.map(l=>+l.loan||0),x=>x?fmtMan(x):'-','low');
+    row('대출 금리',ls.map(l=>+l.loanRate||0),x=>x?x+'%':'-','low');
+    row('월 대출 이자',ls.map(loanInt),x=>x?fmtMan1(x):'-','low');
+    row('자기 자금',ls.map(ownCash),fmtMan,'low','보증금·매매가 − 대출');}
+  row('월 실질 비용',ls.map(monthly),fmtMan1,'low',`대출 이자 + 자기 자금 연 ${S.settings.rate}% 환산 + 관리비`);
   sec('면적');
   row('공급',ls.map(l=>+l.areaSupply||0),areaStr,'high');
   row('전용',ls.map(l=>+l.areaNet||0),areaStr,'high');
@@ -545,7 +566,7 @@ function renderCompare(v){
 function renderSettings(v){
   $('#title').textContent='설정';
   v.innerHTML=`<div class="card"><h2>계산·표시</h2>
-    <div class="field"><label>보증금·매매가 월 환산 연이율</label><div class="unit"><input inputmode="decimal" data-s="rate" value="${esc(S.settings.rate)}"><span>% / 년</span></div><div class="hint">월세 ↔ 전세 ↔ 매매를 "월 실질 비용" 한 줄로 비교하기 위한 기회비용(또는 대출 이율)입니다.</div></div>
+    <div class="field"><label>자기 자금 월 환산 연이율</label><div class="unit"><input inputmode="decimal" data-s="rate" value="${esc(S.settings.rate)}"><span>% / 년</span></div><div class="hint">보증금·매매가에서 대출을 뺀 내 돈을 "묶어 두는 비용"(예금 이자 정도)으로 환산해 월세 ↔ 전세 ↔ 매매를 한 줄로 비교합니다. 대출 이자는 매물마다 입력한 금리로 따로 계산됩니다.</div></div>
     <div class="field"><label>면적 단위</label><div class="seg"><button class="${S.settings.unit==='평'?'on':''}" data-act="unit" data-val="평">평</button><button class="${S.settings.unit==='m2'?'on':''}" data-act="unit" data-val="m2">㎡</button></div></div>
     <div class="field"><label>화면</label><div class="seg">${[['','기기 따라'],['light','밝게'],['dark','어둡게']].map(t=>`<button class="${(S.settings.theme||'')===t[0]?'on':''}" data-act="theme" data-val="${t[0]}">${t[1]}</button>`).join('')}</div></div>
   </div>
@@ -738,6 +759,7 @@ document.addEventListener('click',async e=>{
     case 'cmp':{const set=new Set(S.settings.compare||[]);if(t.checked){if(set.size>=4){t.checked=false;toast('비교는 최대 4개까지');return;}set.add(id);}else set.delete(id);S.settings.compare=[...set];saveSettings();return;}
     case 'cmpOff':{S.settings.compare=(S.settings.compare||[]).filter(x=>x!==id);saveSettings();route();return;}
     case 'type':{l.type=t.dataset.val;saveListing(l);rerender();return;}
+    case 'loanName':{l.loanName=l.loanName===t.dataset.val?'':t.dataset.val;saveListing(l);rerender();return;}
     case 'delL':{if(!confirm(`"${l.name}" 매물과 사진을 모두 삭제할까요?`))return;const ps=await dbIdx('photos','listingId',l.id);for(const ph of ps){dropURL(ph.id);await dbDel('photos',ph.id);}await dbDel('listings',l.id);S.listings=S.listings.filter(x=>x.id!==l.id);S.settings.compare=(S.settings.compare||[]).filter(x=>x!==l.id);saveSettings();toast('삭제했습니다');go('list');return;}
     case 'addR':{const k=t.dataset.val;const same=(l.rooms||[]).filter(r=>r.kind===k).length;const r={id:uid(),kind:k,name:same?`${k} ${same+1}`:k,w:'',d:'',h:230,scores:{},memo:''};l.rooms=l.rooms||[];l.rooms.push(r);saveListing(l);go('l/'+l.id+'/r/'+r.id);return;}
     case 'openR':go('l/'+id+'/r/'+t.dataset.rid);return;
@@ -771,7 +793,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.f){const v=t.type==='number'||t.inputMode==='numeric'||t.inputMode==='decimal'?t.value.replace(/[^\d.]/g,''):t.value;setPath(l,t.dataset.f,v);saveListing(l);
     if(t.dataset.f==='name')$('#title').textContent=l.name;
     // 합계·환산 즉시 갱신 (전체 재그리기 없이)
-    if(t.dataset.f.startsWith('fees.')||['deposit','rent','price','areaSupply','areaNet'].includes(t.dataset.f))refreshTotals(l,t);
+    if(t.dataset.f.startsWith('fees.')||['deposit','rent','price','loan','loanRate','areaSupply','areaNet'].includes(t.dataset.f))refreshTotals(l,t);
     return;}
   if(t.dataset.rf){const r=(l.rooms||[]).find(x=>x.id===p[3]);if(!r)return;r[t.dataset.rf]=t.inputMode==='numeric'?t.value.replace(/[^\d]/g,''):t.value;saveListing(l);
     const a=$('#rArea');if(a)a.textContent=areaBoth(roomArea(r));if(t.dataset.rf==='name')$('#title').textContent=l.name+' · '+r.name;return;}
@@ -781,9 +803,10 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset.rf==='kind'){const p=parts();const l=getL(p[1]);const r=l.rooms.find(x=>x.id===p[3]);if(r.name===r.kind)r.name=t.value;r.kind=t.value;saveListing(l);route();}
   if(t.dataset.f==='direction'||t.dataset.f==='visitedAt'){const l=getL(parts()[1]);setPath(l,t.dataset.f,t.value);saveListing(l);}
 });
-function refreshTotals(l,t){ // 기본 탭의 합계 영역만 다시 계산
-  const cards=$$('.card');const totals=$$('.total .n');if(totals.length>=2){totals[0].textContent=fmtMan1(feesSum(l));totals[1].textContent=fmtMan1(monthly(l));}
-  const kvs=$$('.kv b');if(kvs.length>=2){const first=l.type==='월세'?+l.rent||0:l.type==='전세'?(+l.deposit||0)*S.settings.rate/1200:(+l.price||0)*S.settings.rate/1200;kvs[0].textContent=fmtMan1(first);if(l.type==='월세'){kvs[1].textContent=fmtMan1((+l.deposit||0)*S.settings.rate/1200);kvs[2].textContent=fmtMan1(feesSum(l));}else kvs[1].textContent=fmtMan1(feesSum(l));}
+function refreshTotals(l,t){ // 기본 탭의 합계 영역만 다시 계산(입력 칸은 건드리지 않음)
+  const ft=$('#feeTotal');if(ft)ft.textContent=fmtMan1(feesSum(l));
+  const li=$('#loanInt');if(li)li.textContent=fmtMan1(loanInt(l));
+  const cc=$('#costCard');if(cc)cc.outerHTML=costCard(l);
   if(t.dataset.f==='areaSupply'||t.dataset.f==='areaNet'){const h=t.closest('.field').querySelector('.hint');if(h)h.textContent=t.value?(+t.value/PY).toFixed(1)+'평':'';}
 }
 $('#fileCam').addEventListener('change',e=>{if(pendingPhotoTarget)addPhotos([...e.target.files],pendingPhotoTarget.lid,pendingPhotoTarget.rid);});
