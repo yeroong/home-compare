@@ -1,6 +1,6 @@
-/* 집 비교 — 서비스 워커. 앱 파일을 저장해 두어 오프라인·홈 화면 앱으로 동작하게 함 */
-const CACHE = 'homecmp-v6';
-const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];
+/* 집어봐 — 서비스 워커. 앱 파일을 저장해 두어 오프라인·홈 화면 앱으로 동작하게 함 */
+const CACHE = 'homecmp-v7';
+const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-512-maskable.png', './assets/brand.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -26,7 +26,7 @@ self.addEventListener('fetch', e => {
       }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
     );
   } else {
-    // 외부(three.js 등): 저장본 우선, 없으면 받아서 저장
+    // 외부(three.js·글꼴 등): 저장본 우선, 없으면 받아서 저장
     e.respondWith(
       caches.match(e.request).then(r => r || fetch(e.request).then(res => {
         const copy = res.clone();

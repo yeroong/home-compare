@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg"  width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
+  <ellipse cx="100" cy="186" rx="52" ry="7" fill="rgba(38,52,59,.12)"/>
+  <!-- 몸 -->
+  <path d="M40 128 C40 80 160 80 160 128 C160 162 136 182 100 182 C64 182 40 162 40 128 Z" fill="#FFFFFF" stroke="#E9EEF0" stroke-width="2.5"/>
+  <ellipse cx="46" cy="150" rx="14" ry="10" fill="#FFFFFF" stroke="#E9EEF0" stroke-width="2"/>
+  <!-- 모자 -->
+  <path d="M38 96 C38 44 162 44 162 96 Z" fill="#42C7B6"/>
+  <path d="M30 98 C30 90 170 90 170 98 C170 106 30 106 30 98 Z" fill="#2FB3A2"/>
+  <g transform="translate(100 70)"><path d="M-14 4 L0 -11 L14 4 Z" fill="#fff"/><rect x="-9" y="2" width="18" height="12" rx="2.5" fill="#fff"/><rect x="-3" y="7" width="6" height="7" rx="1.5" fill="#42C7B6"/></g>
+  <path d="M70 118 q9 -10 18 0" stroke="#26343B" stroke-width="4.5" stroke-linecap="round" fill="none"/><path d="M112 118 q9 -10 18 0" stroke="#26343B" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <circle cx="62" cy="134" r="7" fill="#FFB7AA" opacity=".85"/><circle cx="138" cy="134" r="7" fill="#FFB7AA" opacity=".85"/>
+  <path d="M90 138 q11 12 22 0" stroke="#26343B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  <path d="M156 88 c-6 -10 -20 -4 -14 8 c3 6 14 14 14 14 s11 -8 14 -14 c6 -12 -8 -18 -14 -8z" fill="#FF745E"/><path d="M176 62 c-3 -6 -11 -2 -8 5 c2 3 8 8 8 8 s6 -5 8 -8 c3 -7 -5 -11 -8 -5z" fill="#FF745E" opacity=".7"/><g transform="translate(138 128) scale(.42)"><rect x="18" y="40" width="54" height="42" rx="8" fill="#FFF8F3" stroke="#F1D9CC" stroke-width="3"/><path d="M12 46 L45 14 L78 46 Z" fill="#FF745E" stroke="#FF745E" stroke-width="10" stroke-linejoin="round"/><rect x="36" y="54" width="18" height="18" rx="4" fill="#42C7B6"/></g>
+</svg>
