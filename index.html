@@ -294,7 +294,7 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 <script>
 'use strict';
 /* ========= 상수 ========= */
-const APP_VER='v7.1';
+const APP_VER='v7.2';
 const isDark=()=>document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);
 /* ========= 앱 설치(PWA) ========= */
 let deferredInstall=null;
@@ -494,7 +494,7 @@ window.addEventListener('hashchange',route);
 async function renderList(v){
   $('#title').innerHTML=BRAND.logo({height:21,dark:isDark()});
   const sortName={created:'등록순',cost:'월비용순',score:'점수순',area:'면적순'}[S.settings.sort||'created'];
-  $('#topActs').innerHTML=`<button data-act="sort">${IC.sort}${sortName}</button>`;
+  $('#topActs').innerHTML=`<button data-act="unitToggle">${S.settings.unit==='평'?'평':'㎡'}</button><button data-act="sort">${IC.sort}${sortName}</button>`;
   let ls=[...S.listings];
   if(S.settings.sort==='cost')ls.sort((a,b)=>(monthly(a)||1e9)-(monthly(b)||1e9));
   else if(S.settings.sort==='score')ls.sort((a,b)=>homeScore(b)-homeScore(a));
@@ -546,6 +546,11 @@ function initCard(l){const i=initialCost(l);const fee=brokerFee(l);
     </div>
     <div class="row wrap"><button class="btn sm sec" data-act="brokerFill">법정 상한 ${fmtMan1(fee)} 넣기</button><span class="xs muted">중개보수는 상한 요율 기준이며 협의로 낮출 수 있습니다</span></div>
     <div class="total"><span>초기 비용 합계</span><span class="n" id="initTotal">${fmtMan(i.total)}</span></div></div>`;}
+function areaInputs(l){const py=S.settings.areaIn==='py';const show=v=>{v=+v||0;if(!v)return '';return py?String(Math.round(v/PY*10)/10):String(v);};const other=v=>{v=+v||0;if(!v)return '';return py?v.toFixed(1)+'㎡':(v/PY).toFixed(1)+'평';};
+  const one=(key,label,ph)=>`<div class="field"><label>${label}</label><div class="unit"><input inputmode="decimal" data-f="${key}" data-conv="${py?'py':''}" value="${show(l[key])}" placeholder="${ph}"><span>${py?'평':'㎡'}</span></div><div class="hint">${other(l[key])}</div></div>`;
+  return `<div class="row" style="justify-content:space-between;margin:2px 0 8px"><span class="lbl" style="margin:0">면적 입력 단위</span><div class="seg sm" style="width:150px"><button class="${!py?'on':''}" data-act="areaIn" data-val="m2">㎡</button><button class="${py?'on':''}" data-act="areaIn" data-val="py">평</button></div></div>
+    <div class="grid2">${one('areaSupply','공급 면적',py?'18.1':'59.9')}${one('areaNet','전용 면적',py?'13.6':'45.0')}</div>
+    <div class="hint" style="margin-top:0">1평 = 3.3058㎡. 어느 단위로 넣어도 아래 칸에 다른 단위가 같이 보이고, 목록·비교표 표시는 위 전환 단추(평 ↔ ㎡)로 바꿉니다.</div>`;}
 function catBars(l){const cs=catScores(l);return `<div class="cat4">${Object.keys(CAT_LABEL).map(k=>`<div class="c"><div class="n" style="color:${cs[k]==null?'var(--muted2)':cs[k]>=70?'var(--good)':cs[k]>=50?'var(--warn)':'var(--bad)'}">${cs[k]==null?'-':cs[k]}</div><div class="l">${CAT_LABEL[k]}</div></div>`).join('')}</div>`;}
 function flagChips(l){const f=riskFlags(l);return f.length?`<div class="flags">${f.map(x=>`<span class="chip ${x[0]}">${x[0]==='neutral'?IC.info:IC.alert}${esc(x[1])}</span>`).join('')}</div>`:'';}
 function triRow(name,how,val,attr){const v=+val||0;
@@ -554,7 +559,7 @@ function triRow(name,how,val,attr){const v=+val||0;
     ${how?`<div class="how">${esc(how)}</div>`:''}</div>`;}
 
 async function renderListing(v,l,tab){
-  $('#title').textContent=l.name;
+  $('#title').textContent=l.name;$('#topActs').innerHTML=`<button data-act="unitToggle">${S.settings.unit==='평'?'평':'㎡'}</button>`;
   curTab=tab;fix(l);
   let html=subtabs(l,tab)+(tab==='basic'?headCard(l):'');
   if(tab==='basic'){
@@ -574,10 +579,7 @@ async function renderListing(v,l,tab){
       ${l.type!=='매매'?`<div class="field"><label>보증금</label><div class="unit"><input inputmode="numeric" data-f="deposit" value="${esc(l.deposit)}" placeholder="1000"><span>만원</span></div></div>`:''}
       ${l.type==='월세'?`<div class="field"><label>월세</label><div class="unit"><input inputmode="numeric" data-f="rent" value="${esc(l.rent)}" placeholder="55"><span>만원/월</span></div></div>`:''}
       ${l.type==='매매'?`<div class="field"><label>매매가</label><div class="unit"><input inputmode="numeric" data-f="price" value="${esc(l.price)}" placeholder="35000"><span>만원</span></div></div>`:''}
-      <div class="grid2">
-        <div class="field"><label>공급 면적</label><div class="unit"><input inputmode="decimal" data-f="areaSupply" value="${esc(l.areaSupply)}" placeholder="59.9"><span>㎡</span></div><div class="hint">${areaStr(l.areaSupply)!=='-'?(l.areaSupply/PY).toFixed(1)+'평':''}</div></div>
-        <div class="field"><label>전용 면적</label><div class="unit"><input inputmode="decimal" data-f="areaNet" value="${esc(l.areaNet)}" placeholder="45.0"><span>㎡</span></div><div class="hint">${areaStr(l.areaNet)!=='-'?(l.areaNet/PY).toFixed(1)+'평':''}</div></div>
-      </div>
+      ${areaInputs(l)}
     </div>
     <div class="card"><h2><span class="t">${IC.calc}관리비·고정 지출</span><span class="sub">만원/월</span></h2>
       <div class="grid2">${FEES.map(x=>`<div class="field"><label>${x[1]}</label><div class="unit"><input inputmode="decimal" data-f="fees.${x[0]}" value="${esc(f[x[0]]??'')}" placeholder="0"><span>만</span></div></div>`).join('')}</div>
@@ -726,7 +728,7 @@ async function renderRoom(v,l,rid){
 
 /* ========= 비교 ========= */
 async function renderCompare(v){
-  $('#title').textContent='비교';
+  $('#title').textContent='비교';$('#topActs').innerHTML=`<button data-act="unitToggle">${S.settings.unit==='평'?'평 표시':'㎡ 표시'}</button>`;
   const ids=(S.settings.compare||[]).filter(id=>getL(id));const ls=ids.map(getL);
   if(ls.length<2){v.innerHTML=`<div class="empty"><div style="margin:0 auto 4px">${BRAND.mascot('think',150)}</div><b>집을 하나 더 골라볼까?</b><div class="small" style="margin-top:6px">매물 목록에서 오른쪽 <b>비교</b> 칸을 체크하면 여기 나옵니다.${ls.length?`<br>지금 ${ls.length}개 선택됨`:''}</div><div style="margin-top:16px"><button class="btn sec" data-act="gol">매물 목록으로</button></div></div>`;return;}
   const photosAll=await dbAll('photos');const firstPhoto={};photosAll.forEach(p=>{if(ls.some(l=>l.id===p.listingId)&&(!firstPhoto[p.listingId]||p.createdAt<firstPhoto[p.listingId].createdAt))firstPhoto[p.listingId]=p;});
@@ -843,7 +845,14 @@ function renderSettings(v){
     </div>
     <div class="hint">데이터는 이 폰 브라우저 안에만 저장됩니다. 브라우저 데이터를 지우면 사라지니 가끔 내보내기로 백업하세요. 공유 기능이 있는 폰이면 카카오톡·드라이브로 바로 보낼 수 있습니다.</div>
   </div>
-  <div class="card"><h2><span class="t">${IC.info}앱 설치</span></h2><div class="small muted">${isStandalone()?'홈 화면 앱으로 실행 중입니다.':'브라우저에서 실행 중입니다. 매물 목록 위 안내대로 홈 화면에 설치하면 앱처럼 열립니다.'}</div>${!isStandalone()&&S.settings.hideInstall?`<button class="btn sm sec" data-act="showInstall" style="margin-top:8px">설치 안내 다시 보기</button>`:''}</div>
+  <div class="card"><h2><span class="t">${IC.info}앱 설치</span></h2><div class="small muted">${isStandalone()?'홈 화면 앱으로 실행 중입니다.':'브라우저에서 실행 중입니다. 매물 목록 위 안내대로 홈 화면에 설치하면 앱처럼 열립니다.'}</div>
+    <details style="margin-top:10px"><summary class="small" style="font-weight:700;cursor:pointer;color:var(--accent)">이름·아이콘·색이 옛날 그대로면 (재설치 안내)</summary>
+      <ol class="small muted" style="padding-left:18px;margin:8px 0 0;line-height:1.7">
+        <li>이 화면 아래 <b>사진 포함 내보내기</b>로 먼저 백업합니다.</li>
+        <li>홈 화면의 옛 아이콘을 길게 눌러 <b>제거</b>합니다. "데이터 삭제" 체크가 보이면 <b>끄고</b> 지웁니다.</li>
+        <li>Chrome(아이폰은 Safari)으로 이 주소를 열고 <b>설치</b> 또는 <b>홈 화면에 추가</b>를 다시 합니다.</li>
+        <li>새로 생긴 "집어봐" 아이콘으로 열고, 매물이 비어 있으면 <b>가져오기</b>로 백업을 넣습니다.</li>
+      </ol></details>${!isStandalone()&&S.settings.hideInstall?`<button class="btn sm sec" data-act="showInstall" style="margin-top:8px">설치 안내 다시 보기</button>`:''}</div>
   <div class="card"><h2><span class="t">${IC.clip}사용법</span></h2>
     <ol class="small" style="padding-left:18px;margin:0;line-height:1.75">
       <li><b>매물 추가</b> → 유형·가격·관리비·대출을 넣으면 월 실질 비용과 초기 비용이 계산됩니다.</li>
@@ -1057,6 +1066,8 @@ document.addEventListener('click',async e=>{
     case 'rotSel':{const r=plan.l.rooms.find(x=>x.id===plan.sel);if(!r)return;[r.w,r.d]=[r.d,r.w];saveListing(plan.l);updateSel();if(plan.mode==='2d')drawPlan();else build3D();return;}
     case 'openSel':{if(plan.sel)go('l/'+plan.l.id+'/r/'+plan.sel);return;}
     case 'unit':S.settings.unit=t.dataset.val;saveSettings();rerender();return;
+    case 'unitToggle':S.settings.unit=S.settings.unit==='평'?'m2':'평';saveSettings();rerender();return;
+    case 'areaIn':S.settings.areaIn=t.dataset.val;saveSettings();rerender();return;
     case 'theme':{S.settings.theme=t.dataset.val;applyTheme();saveSettings();rerender();return;}
     case 'exp':exportData(t.dataset.val==='full');return;
     case 'imp':{const inp=$('#fileImp');inp.value='';inp.click();return;}
@@ -1070,7 +1081,7 @@ document.addEventListener('input',e=>{
   if(t.dataset.s){S.settings[t.dataset.s]=t.dataset.s==='rate'?(+t.value||0):t.value;saveSettings();return;}
   if(t.dataset.w){S.settings.weights=S.settings.weights||{cost:25,site:25,cond:30,safe:20};S.settings.weights[t.dataset.w]=+t.value.replace(/[^\d]/g,'')||0;saveSettings();const h=t.closest('.card')?.querySelector('h2 .sub');if(h)h.textContent='합계 '+Object.values(S.settings.weights).reduce((a,b)=>a+(+b||0),0);return;}
   const p=parts();if(p[0]!=='l')return;const l=getL(p[1]);if(!l)return;
-  if(t.dataset.f){const v=t.type==='number'||t.inputMode==='numeric'||t.inputMode==='decimal'?t.value.replace(/[^\d.]/g,''):t.value;setPath(l,t.dataset.f,v);saveListing(l);
+  if(t.dataset.f){const v=t.type==='number'||t.inputMode==='numeric'||t.inputMode==='decimal'?t.value.replace(/[^\d.]/g,''):t.value;setPath(l,t.dataset.f,t.dataset.conv==='py'&&v?String(Math.round(+v*PY*100)/100):v);saveListing(l);
     if(t.dataset.f==='name')$('#title').textContent=l.name;
     // 합계·환산 즉시 갱신 (전체 재그리기 없이)
     if(t.dataset.f.startsWith('fees.')||t.dataset.f.startsWith('init.')||['deposit','rent','price','loan','loanRate','areaSupply','areaNet'].includes(t.dataset.f))refreshTotals(l,t);
@@ -1090,7 +1101,7 @@ function refreshTotals(l,t){ // 기본 탭의 합계 영역만 다시 계산(입
   const cc=$('#costCard');if(cc)cc.outerHTML=costCard(l);
   const it=$('#initTotal');if(it)it.textContent=fmtMan(initialCost(l).total);
   if(!t.dataset.f.startsWith('init.')){const ic=$('#initCard');if(ic&&!ic.contains(document.activeElement))ic.outerHTML=initCard(l);}
-  if(t.dataset.f==='areaSupply'||t.dataset.f==='areaNet'){const h=t.closest('.field').querySelector('.hint');if(h)h.textContent=t.value?(+t.value/PY).toFixed(1)+'평':'';}
+  if(t.dataset.f==='areaSupply'||t.dataset.f==='areaNet'){const h=t.closest('.field').querySelector('.hint');if(h)h.textContent=t.value?(t.dataset.conv==='py'?(+t.value*PY).toFixed(1)+'㎡':(+t.value/PY).toFixed(1)+'평'):'';}
 }
 function onPicked(files){if(!pendingPhotoTarget||!files.length)return;const t=pendingPhotoTarget;pendingPhotoTarget=null;
   if(t.sketch)readSketch(files[0],t.lid);else addPhotos(files,t.lid,t.rid);}
