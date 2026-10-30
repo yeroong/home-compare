@@ -270,6 +270,11 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 .onb .btns{display:flex;gap:8px;width:100%;max-width:320px}
 .onb .skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:16px;color:var(--muted);font-weight:600;padding:8px}
 .brandcard{display:flex;align-items:center;gap:14px}
+.links{display:flex;flex-direction:column;gap:6px}
+.lk{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:12px;background:var(--card2)}
+.lk .lk-t{display:flex;align-items:center;gap:6px;font-size:14px;min-width:0}.lk .lk-t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk .lk-u{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk button{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}.lk button:active{background:var(--line)}
 .brandcard .sl{font-size:13px;color:var(--muted);margin-top:2px}
 </style>
 </head>
@@ -294,7 +299,7 @@ table.cmp td .mb i{display:block;height:100%;background:var(--accent)}
 <script>
 'use strict';
 /* ========= 상수 ========= */
-const APP_VER='v7.2';
+const APP_VER='v8';
 const isDark=()=>document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);
 /* ========= 앱 설치(PWA) ========= */
 let deferredInstall=null;
@@ -364,6 +369,9 @@ const IC={
   download:'<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>',
   trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>',
   sort:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg>',
+  link:'<svg class="i" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+  copy:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
 };
 const FEES=[['common','공용관리비'],['water','수도'],['gas','가스(평균)'],['elec','전기(평균)'],['internet','인터넷·TV'],['parking','주차'],['other','기타']];
 const DIRS=['','남','남동','남서','동','서','북','북동','북서'];
@@ -439,8 +447,8 @@ function dateStr(t){const d=new Date(t);return d.getFullYear()+'.'+String(d.getM
 
 function newListing(){const n=S.listings.length+1;return {id:uid(),name:'매물 '+n,type:'월세',addr:'',floor:'',totalFloors:'',direction:'',moveIn:'',visitedAt:new Date().toISOString().slice(0,10),
   deposit:'',rent:'',price:'',loanName:'',loan:'',loanRate:'',areaSupply:'',areaNet:'',fees:{},feeMemo:'',rooms:DEFAULT_ROOMS.map(k=>({id:uid(),kind:k,name:k,w:'',d:'',h:230,scores:{},memo:''})),
-  checks:{},site:{},safety:{checks:{}},cond:{options:[]},init:{},pros:'',cons:'',memo:'',createdAt:Date.now(),updatedAt:Date.now()};}
-function fix(l){l.site=l.site||{};l.safety=l.safety||{};l.safety.checks=l.safety.checks||{};l.cond=l.cond||{};l.cond.options=l.cond.options||[];l.init=l.init||{};l.checks=l.checks||{};return l;}
+  checks:{},site:{},safety:{checks:{}},cond:{options:[]},init:{},links:[],pros:'',cons:'',memo:'',createdAt:Date.now(),updatedAt:Date.now()};}
+function fix(l){l.site=l.site||{};l.safety=l.safety||{};l.safety.checks=l.safety.checks||{};l.cond=l.cond||{};l.cond.options=l.cond.options||[];l.init=l.init||{};l.checks=l.checks||{};l.links=l.links||[];return l;}
 /* 중개보수 법정 상한(주택, 2021.10 개정 요율) · 만원 */
 function brokerFee(l){let amt,tbl;
   if(l.type==='매매'){amt=+l.price||0;tbl=[[5000,.006,25],[20000,.005,80],[90000,.004,0],[120000,.005,0],[150000,.006,0],[Infinity,.007,0]];}
@@ -512,7 +520,7 @@ async function renderList(v){
     return `<div class="card lst" data-act="open" data-id="${l.id}">
       <div class="th">${fp?`<img src="${photoURL(fp,true)}" alt="">`:IC.home}</div>
       <div class="bd">
-        <div class="row" style="gap:6px"><span class="badge ${l.type}">${l.type}</span><span class="xs muted">${esc(l.visitedAt||'')}${cnt[l.id]?` · 사진 ${cnt[l.id]}`:''}</span></div>
+        <div class="row" style="gap:6px"><span class="badge ${l.type}">${l.type}</span><span class="xs muted">${esc(l.visitedAt||'')}${cnt[l.id]?` · 사진 ${cnt[l.id]}`:''}${(l.links||[]).length?` · 링크 ${l.links.length}`:''}</span></div>
         <div class="nm">${esc(l.name)}</div>
         <div class="pr">${priceLine(l)}</div>
         <div class="mt">전용 ${areaStr(l.areaNet)}${l.floor?` · ${esc(l.floor)}층`:''}${l.direction?` · ${esc(l.direction)}향`:''}${l.addr?` · ${esc(l.addr)}`:''}</div>
@@ -546,6 +554,18 @@ function initCard(l){const i=initialCost(l);const fee=brokerFee(l);
     </div>
     <div class="row wrap"><button class="btn sm sec" data-act="brokerFill">법정 상한 ${fmtMan1(fee)} 넣기</button><span class="xs muted">중개보수는 상한 요율 기준이며 협의로 낮출 수 있습니다</span></div>
     <div class="total"><span>초기 비용 합계</span><span class="n" id="initTotal">${fmtMan(i.total)}</span></div></div>`;}
+/* 링크: 주소로 어느 서비스인지 알아내어 이름·아이콘 붙임 */
+const LINK_KINDS=[['zigbang','직방','zigbang.com'],['dabang','다방','dabangapp.com'],['naver','네이버부동산','land.naver.com|new.land.naver.com|fin.land.naver.com|m.land.naver.com'],['kb','KB부동산','kbland.kr'],['hogoong','호갱노노','hogangnono.com'],['peterpan','피터팬','peterpanz.com'],['naverMap','네이버 지도','map.naver.com|naver.me'],['kakaoMap','카카오맵','map.kakao.com|kko.to|place.map.kakao.com'],['google','구글 지도','maps.google|goo.gl/maps|maps.app.goo.gl'],['youtube','유튜브','youtube.com|youtu.be'],['blog','블로그·카페','blog.naver.com|cafe.naver.com|tistory.com'],['registry','등기·건축물대장','iros.go.kr|gov.kr|eais.go.kr'],['hug','HUG·보증','khug.or.kr|sgic.co.kr']];
+function linkKind(url){const u=(url||'').toLowerCase();for(const k of LINK_KINDS){if(k[2].split('|').some(h=>u.includes(h)))return k;}return ['web','웹 링크',''];}
+function normUrl(u){u=(u||'').trim();if(!u)return '';if(/^[a-z][a-z0-9+.-]*:/i.test(u))return u;return 'https://'+u;}
+function linkHost(u){try{return new URL(u).host.replace(/^www\./,'');}catch(e){return u.slice(0,30);}}
+function linksCard(l){const ls=l.links||[];
+  return `<div class="card" id="linksCard"><h2><span class="t">${IC.link}링크</span><span class="sub">${ls.length?ls.length+'개':'직방·다방·네이버·지도 등'}</span></h2>
+    ${ls.length?`<div class="links">${ls.map(k=>{const kind=linkKind(k.url);return `<div class="lk"><a href="${esc(k.url)}" target="_blank" rel="noopener" class="grow" style="min-width:0;text-decoration:none;color:inherit"><div class="lk-t"><span class="chip neutral">${esc(kind[1])}</span><b>${esc(k.label||kind[1])}</b></div><div class="lk-u">${esc(linkHost(k.url))}</div></a><button data-act="lkCopy" data-lk="${k.id}" title="복사">${IC.copy}</button><button data-act="lkDel" data-lk="${k.id}" title="삭제" style="color:var(--bad)">${IC.x}</button></div>`;}).join('')}</div>`:`<div class="small muted" style="margin-bottom:8px">앱에서 본 매물은 <b>공유 → 링크 복사</b>로 주소를 가져와 붙여 넣으세요. 지도·블로그·등기부 조회 주소도 같이 둘 수 있습니다.</div>`}
+    <div class="row" style="margin-top:8px"><input class="inp grow" id="lkUrl" inputmode="url" placeholder="https:// 주소 붙여넣기"><button class="btn sm" data-act="lkAdd">추가</button></div>
+    <input class="inp" id="lkLabel" placeholder="이름 (비우면 자동: 직방 · 네이버 지도 …)" style="margin-top:8px;height:40px">
+    <div class="row wrap" style="margin-top:8px">${['https://www.zigbang.com','https://www.dabangapp.com','https://new.land.naver.com','https://map.naver.com','https://map.kakao.com'].map(u=>`<button class="btn sm ghost" data-act="lkOpen" data-val="${u}">${linkKind(u)[1]} 열기</button>`).join('')}</div>
+    <div class="hint">직방·다방 링크는 폰에 그 앱이 깔려 있으면 앱으로 바로 열립니다. 복사 단추는 주소를 클립보드에 넣습니다.</div></div>`;}
 function areaInputs(l){const py=S.settings.areaIn==='py';const show=v=>{v=+v||0;if(!v)return '';return py?String(Math.round(v/PY*10)/10):String(v);};const other=v=>{v=+v||0;if(!v)return '';return py?v.toFixed(1)+'㎡':(v/PY).toFixed(1)+'평';};
   const one=(key,label,ph)=>`<div class="field"><label>${label}</label><div class="unit"><input inputmode="decimal" data-f="${key}" data-conv="${py?'py':''}" value="${show(l[key])}" placeholder="${ph}"><span>${py?'평':'㎡'}</span></div><div class="hint">${other(l[key])}</div></div>`;
   return `<div class="row" style="justify-content:space-between;margin:2px 0 8px"><span class="lbl" style="margin:0">면적 입력 단위</span><div class="seg sm" style="width:150px"><button class="${!py?'on':''}" data-act="areaIn" data-val="m2">㎡</button><button class="${py?'on':''}" data-act="areaIn" data-val="py">평</button></div></div>
@@ -598,6 +618,7 @@ async function renderListing(v,l,tab){
     </div>
     ${costCard(l)}
     ${initCard(l)}
+    ${linksCard(l)}
     <div class="card"><h2><span class="t">${IC.clip}장점·단점·메모</span></h2>
       <div class="field"><label>장점</label><textarea class="inp" data-f="pros" placeholder="역 5분, 남향, 신축">${esc(l.pros)}</textarea></div>
       <div class="field"><label>단점</label><textarea class="inp" data-f="cons" placeholder="수압 약함, 주차 불편">${esc(l.cons)}</textarea></div>
@@ -796,6 +817,8 @@ async function renderCompare(v){
     if(vals.some(x=>x))row(nm,vals,x=>x||'-','high');});
   sec('주의 사항');
   row('위험 표시',ls.map(l=>riskFlags(l)),f=>f.length?`<span style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">${f.map(x=>`<span class="chip ${x[0]}">${esc(x[1])}</span>`).join('')}</span>`:'<span class="muted">없음</span>');
+  sec('링크');
+  row('저장한 링크',ls.map(l=>l.links||[]),ks=>ks.length?`<span style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${ks.map(k=>`<a href="${esc(k.url)}" target="_blank" rel="noopener" class="chip neutral" style="text-decoration:none">${IC.link.replace('class="i"','class="i s"')}${esc(k.label||linkKind(k.url)[1])}</a>`).join('')}</span>`:'<span class="muted">없음</span>');
   sec('메모');
   row('장점',ls.map(l=>l.pros),x=>txt(x,180));
   row('단점',ls.map(l=>l.cons),x=>txt(x,180));
@@ -1053,6 +1076,11 @@ document.addEventListener('click',async e=>{
     case 'opt':{fix(l);const o=l.cond.options;const i=o.indexOf(t.dataset.val);if(i>=0)o.splice(i,1);else o.push(t.dataset.val);saveListing(l);rerender();return;}
     case 'brokerFill':{fix(l);l.init.broker=brokerFee(l);saveListing(l);rerender();return;}
     case 'gocmp':go('compare');return;
+    case 'lkAdd':{fix(l);const u=normUrl($('#lkUrl').value);const okUrl=/^[a-z][a-z0-9+.-]*:\/\/\S+$/i.test(u)&&(!/^https?:/i.test(u)||/^https?:\/\/[^\s\/]+\.[^\s\/]+/i.test(u));if(!u||!okUrl){toast('주소를 확인해 주세요 (예: https://www.zigbang.com/…)');return;}
+      const label=($('#lkLabel').value||'').trim()||linkKind(u)[1];l.links.push({id:uid(),label,url:u,createdAt:Date.now()});saveListing(l);rerender();toast('링크를 담았습니다');return;}
+    case 'lkDel':{fix(l);const k=l.links.find(x=>x.id===t.dataset.lk);if(!k||!confirm(`"${k.label}" 링크를 지울까요?`))return;l.links=l.links.filter(x=>x.id!==t.dataset.lk);saveListing(l);rerender();return;}
+    case 'lkCopy':{const k=(l.links||[]).find(x=>x.id===t.dataset.lk);if(!k)return;try{await navigator.clipboard.writeText(k.url);toast('주소를 복사했습니다');}catch(e){prompt('복사할 주소',k.url);}return;}
+    case 'lkOpen':window.open(t.dataset.val,'_blank','noopener');return;
     case 'rs':{const r=l.rooms.find(x=>x.id===p[3]);const k=t.dataset.key,v=+t.dataset.val;r.scores=r.scores||{};r.scores[k]=r.scores[k]===v?0:v;saveListing(l);rerender();return;}
     case 'cam':case 'alb':{pendingPhotoTarget={lid:t.dataset.lid,rid:t.dataset.rid||null};const inp=$(act==='cam'?'#fileCam':'#fileAlb');inp.value='';inp.click();return;}
     case 'view':openViewer(t.dataset.pid,t.dataset.lid,t.dataset.rid||null);return;
@@ -1245,7 +1273,7 @@ async function applySketch(replace){const l=getL(sketchLid);if(!l)return;
   if(sketchBlob){const bmp=await loadBitmap(sketchBlob);const thumb=await resizeTo(bmp,320,.7);await dbPut('photos',{id:uid(),listingId:l.id,roomId:null,blob:sketchBlob,thumb,caption:'도면 스케치',createdAt:Date.now()});sketchBlob=null;}
   $('.sheet-bg')?.remove();toast(`공간 ${rooms.length}개를 만들었습니다`);route();}
 $('#fileImp').addEventListener('change',e=>{if(e.target.files[0])importData(e.target.files[0]);});
-document.addEventListener('keydown',e=>{if($('#viewer')){if(e.key==='Escape')closeViewer();if(e.key==='ArrowLeft')nextPhoto(-1);if(e.key==='ArrowRight')nextPhoto(1);}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='lkUrl'){e.preventDefault();$('[data-act="lkAdd"]')?.click();return;}if($('#viewer')){if(e.key==='Escape')closeViewer();if(e.key==='ArrowLeft')nextPhoto(-1);if(e.key==='ArrowRight')nextPhoto(1);}});
 function applyTheme(){const th=S.settings.theme||'';if(th)document.documentElement.dataset.theme=th;else delete document.documentElement.dataset.theme;}
 
 /* ========= 온보딩(첫 실행) ========= */
