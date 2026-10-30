@@ -35,7 +35,12 @@
   --shadow:none;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%}
+html,body{margin:0;height:100%;overflow-x:hidden;max-width:100vw}
+/* 폰 너비 안에 가두기: 격자·행 안의 칸은 내용 크기와 상관없이 줄어들 수 있어야 함 */
+.grid2>*,.grid3>*,.row>*,.field,.unit{min-width:0}
+.unit input{width:100%}
+.card{max-width:100%}
+img,canvas{max-width:100%}
 body{background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;display:flex;flex-direction:column;min-height:100dvh;overscroll-behavior:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
@@ -50,7 +55,7 @@ a{color:var(--accent)}
 .top .acts{display:flex;gap:4px}
 .top .acts button{height:36px;padding:0 12px;border-radius:10px;background:var(--accent-weak);color:var(--accent);font-weight:600;font-size:14px}
 
-main{flex:1;padding:12px 16px calc(84px + var(--safe-b));max-width:720px;width:100%;margin:0 auto}
+main{flex:1;padding:12px 16px calc(84px + var(--safe-b));max-width:720px;width:100%;margin:0 auto;overflow-x:hidden}
 
 /* 하단 탭 */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
@@ -187,6 +192,18 @@ table.cmp td .mini{display:block;font-size:11px;color:var(--muted);font-weight:4
 .pills span{padding:6px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px;display:flex;gap:6px;align-items:center}
 .pills span button{color:var(--muted);font-size:16px;line-height:1}
 
+/* 바닥 시트(도면 읽기 결과 확인) */
+.sheet-bg{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:flex;align-items:flex-end}
+.sheet{background:var(--card);width:100%;max-height:88vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;padding-bottom:var(--safe-b)}
+.sheet .hd{padding:14px 16px 8px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.sheet .bd{overflow-y:auto;padding:0 16px 8px}
+.sheet .ft{padding:10px 16px;display:flex;gap:8px;border-top:1px solid var(--line)}
+.rrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.rrow .sz{display:grid;grid-template-columns:1fr 1fr;gap:6px;grid-column:1/-1}
+.rrow .inp,.rrow .unit{height:38px}
+.rrow .est{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
 #toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:600;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.on{opacity:.95}
 .hidden{display:none!important}
@@ -212,7 +229,7 @@ table.cmp td .mini{display:block;font-size:11px;color:var(--muted);font-weight:4
 <script>
 'use strict';
 /* ========= 상수 ========= */
-const APP_VER='v3';
+const APP_VER='v4';
 /* ========= 앱 설치(PWA) ========= */
 let deferredInstall=null;
 const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -247,7 +264,7 @@ const DIRS=['','남','남동','남서','동','서','북','북동','북서'];
 const LOANS=['중소기업청년 전세대출','버팀목 전세대출','신혼부부 버팀목','청년 버팀목','디딤돌 구입자금','보금자리론','은행 일반 대출'];
 
 /* ========= 상태 ========= */
-const S={listings:[],settings:{rate:4,unit:'평',compare:[]}};
+const S={listings:[],settings:{rate:4,unit:'평',compare:[]},secret:{apiKey:''}};
 let db;
 const urlCache=new Map();
 let viewPhotos=[];      // 현재 뷰어 사진 배열
@@ -446,6 +463,11 @@ async function renderListing(v,l,tab){
     html+=`<div class="card"><div class="seg" style="margin-bottom:10px"><button class="on" data-act="planMode" data-val="2d">평면도</button><button data-act="planMode" data-val="3d">3D</button></div>
       <div class="planwrap" id="planwrap"><canvas id="plan"></canvas><div class="overlay-msg hidden" id="planMsg"></div></div>
       <div class="planbar">
+        <button class="btn sm" data-act="sketchCam">📷 도면 사진 읽기</button>
+        <button class="btn sm sec" data-act="sketchAlb">🖼️ 앨범에서</button>
+      </div>
+      <div class="hint" style="margin-top:6px">종이에 그린 평면도(방 이름·길이 적은 것)를 찍으면 AI 가 읽어 공간·크기·배치를 만들어 줍니다. 결과를 확인한 뒤 적용합니다.</div>
+      <div class="planbar">
         <button class="btn sm sec" data-act="autoArr">자동 배치</button>
         <button class="btn sm sec" data-act="fitPlan">화면 맞춤</button>
         <button class="btn sm ghost" data-act="rotSel" id="rotBtn" disabled>선택 공간 90° 회전</button>
@@ -569,6 +591,11 @@ function renderSettings(v){
     <div class="field"><label>자기 자금 월 환산 연이율</label><div class="unit"><input inputmode="decimal" data-s="rate" value="${esc(S.settings.rate)}"><span>% / 년</span></div><div class="hint">보증금·매매가에서 대출을 뺀 내 돈을 "묶어 두는 비용"(예금 이자 정도)으로 환산해 월세 ↔ 전세 ↔ 매매를 한 줄로 비교합니다. 대출 이자는 매물마다 입력한 금리로 따로 계산됩니다.</div></div>
     <div class="field"><label>면적 단위</label><div class="seg"><button class="${S.settings.unit==='평'?'on':''}" data-act="unit" data-val="평">평</button><button class="${S.settings.unit==='m2'?'on':''}" data-act="unit" data-val="m2">㎡</button></div></div>
     <div class="field"><label>화면</label><div class="seg">${[['','기기 따라'],['light','밝게'],['dark','어둡게']].map(t=>`<button class="${(S.settings.theme||'')===t[0]?'on':''}" data-act="theme" data-val="${t[0]}">${t[1]}</button>`).join('')}</div></div>
+  </div>
+  <div class="card"><h2>AI 도면 읽기 <span class="sub">Claude API</span></h2>
+    <div class="field"><label>Claude API 키</label><input class="inp" type="password" id="apiKey" value="${esc(S.secret.apiKey||'')}" placeholder="sk-ant-…" autocomplete="off"></div>
+    <div class="row"><button class="btn sm" data-act="saveKey">키 저장</button><button class="btn sm ghost" data-act="clearKey">지우기</button><span class="small muted">${S.secret.apiKey?'저장됨':'없음'}</span></div>
+    <div class="hint">손그림 평면도 사진을 읽어 공간·크기·배치를 자동으로 만드는 데 씁니다. 키는 이 폰에만 저장되고 백업 파일에는 들어가지 않습니다. 키는 console.anthropic.com 에서 발급하며, 사진 한 장 읽는 데 보통 몇십 원이 듭니다.</div>
   </div>
   <div class="card"><h2>백업</h2>
     <div class="row wrap">
@@ -750,6 +777,13 @@ document.addEventListener('click',async e=>{
     case 'install':{if(!deferredInstall)return;deferredInstall.prompt();const r=await deferredInstall.userChoice;if(r.outcome==='accepted')deferredInstall=null;route();return;}
     case 'hideInstall':{S.settings.hideInstall=true;saveSettings();route();return;}
     case 'showInstall':{S.settings.hideInstall=false;saveSettings();go('list');return;}
+    case 'saveKey':{const k=($('#apiKey').value||'').trim();if(!k){toast('키를 입력하세요');return;}S.secret.apiKey=k;await dbPut('kv',{k:'secret',v:S.secret});toast('키를 저장했습니다');rerender();return;}
+    case 'clearKey':{S.secret.apiKey='';await dbPut('kv',{k:'secret',v:S.secret});toast('키를 지웠습니다');rerender();return;}
+    case 'sketchCam':case 'sketchAlb':{if(!S.secret.apiKey){if(confirm('도면 사진을 읽으려면 설정에서 Claude API 키를 먼저 넣어야 합니다. 설정으로 갈까요?'))go('settings');return;}
+      pendingPhotoTarget={lid:l.id,rid:null,sketch:true};const inp=$(act==='sketchCam'?'#fileCam':'#fileAlb');inp.value='';inp.click();return;}
+    case 'sheetClose':{$('.sheet-bg')?.remove();return;}
+    case 'sheetApply':{applySketch(t.dataset.val==='replace');return;}
+    case 'sheetDel':{sketchRooms.splice(+t.dataset.i,1);drawSheet();return;}
     case 'back':{if(p[0]==='l'&&p[2]==='r')go('l/'+p[1]+'/rooms');else go('list');return;}
     case 'add':{const nl=newListing();S.listings.push(nl);await dbPut('listings',nl);go('l/'+nl.id+'/basic');return;}
     case 'open':go('l/'+id+'/basic');return;
@@ -809,14 +843,73 @@ function refreshTotals(l,t){ // 기본 탭의 합계 영역만 다시 계산(입
   const cc=$('#costCard');if(cc)cc.outerHTML=costCard(l);
   if(t.dataset.f==='areaSupply'||t.dataset.f==='areaNet'){const h=t.closest('.field').querySelector('.hint');if(h)h.textContent=t.value?(+t.value/PY).toFixed(1)+'평':'';}
 }
-$('#fileCam').addEventListener('change',e=>{if(pendingPhotoTarget)addPhotos([...e.target.files],pendingPhotoTarget.lid,pendingPhotoTarget.rid);});
-$('#fileAlb').addEventListener('change',e=>{if(pendingPhotoTarget)addPhotos([...e.target.files],pendingPhotoTarget.lid,pendingPhotoTarget.rid);});
+function onPicked(files){if(!pendingPhotoTarget||!files.length)return;const t=pendingPhotoTarget;pendingPhotoTarget=null;
+  if(t.sketch)readSketch(files[0],t.lid);else addPhotos(files,t.lid,t.rid);}
+$('#fileCam').addEventListener('change',e=>onPicked([...e.target.files]));
+$('#fileAlb').addEventListener('change',e=>onPicked([...e.target.files]));
+
+/* ========= 도면 스케치 읽기 (Claude 비전) ========= */
+const KIND_ALIAS={'부엌':'주방','키친':'주방','안방':'큰방','침실':'큰방','방':'작은방','작은 방':'작은방','큰 방':'큰방','욕실':'화장실','화장실':'화장실','샤워실':'화장실','발코니':'베란다','베란다':'베란다','다용도':'기타','다용도실':'기타','세탁실':'기타','드레스룸':'기타','창고':'기타','현관':'현관','거실':'거실','주방':'주방','큰방':'큰방','작은방':'작은방'};
+function guessKind(name,kind){if(KINDS[kind])return kind;const n=(name||'').replace(/\s/g,'');for(const k in KIND_ALIAS)if(n.includes(k.replace(/\s/g,'')))return KIND_ALIAS[k];return '기타';}
+let sketchRooms=[],sketchLid=null,sketchBlob=null;
+const SKETCH_PROMPT=`이 사진은 손으로 그린 집 평면도 스케치다. 각 공간(방)을 찾아 아래 형식의 JSON 으로만 답하라. 설명·코드 블록 없이 JSON 본문만.
+{"unit":"m" 또는 "cm","rooms":[{"name":"그림에 적힌 이름 그대로","kind":"거실|큰방|작은방|주방|화장실|베란다|현관|기타 중 하나","w":가로 길이,"d":세로 길이,"x":왼쪽 위 모서리 x,"y":왼쪽 위 모서리 y,"estimated":true 또는 false,"note":"추정 근거나 읽기 어려운 부분"}]}
+규칙:
+- 길이는 그림에 적힌 숫자를 그대로 쓴다. 단위는 그림 전체에서 하나로 정한다: 숫자가 대부분 20 미만이면 m, 그 이상이면 cm.
+- 숫자가 적히지 않은 변은 맞닿은 이웃 공간의 길이나 그림의 비율로 추정하고 estimated 를 true 로 둔다.
+- x,y 는 그림 배치를 그대로 옮긴 좌표다. 전체 그림의 왼쪽 위를 (0,0) 으로 두고 같은 단위를 쓴다. 공간끼리 겹치지 않게 한다.
+- 이름이 없으면 kind 를 이름으로 쓴다. 한글 손글씨는 집 공간 이름(거실·부엌·안방·작은방·화장실·베란다·다용도·현관 등) 중 가장 가까운 것으로 읽는다.`;
+async function readSketch(file,lid){
+  const l=getL(lid);if(!l)return;sketchLid=lid;
+  showSheet('loading');
+  try{
+    const bmp=await loadBitmap(file);const blob=await resizeTo(bmp,1568,.85);sketchBlob=blob;if(bmp.close)bmp.close();
+    const b64=await blobToB64(blob);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.secret.apiKey,'anthropic-version':'2026-10-21','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-5-5',max_tokens:4000,output_config:{effort:'high'},messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:SKETCH_PROMPT}]}]})});
+    if(!res.ok){let msg='HTTP '+res.status;try{const j=await res.json();msg=j.error?.message||msg;}catch(e){}
+      if(res.status===401)msg='API 키가 틀렸거나 만료됐습니다. 설정에서 다시 넣어 주세요.';throw new Error(msg);}
+    const j=await res.json();
+    if(j.stop_reason==='refusal')throw new Error('모델이 이 사진 처리를 거절했습니다.');
+    const text=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error('응답에서 JSON 을 찾지 못했습니다.');
+    const data=JSON.parse(m[0]);const k=(data.unit||'m')==='m'?100:1;
+    sketchRooms=(data.rooms||[]).map(r=>({name:String(r.name||r.kind||'공간').trim(),kind:guessKind(r.name,r.kind),w:Math.round((+r.w||0)*k/10)*10,d:Math.round((+r.d||0)*k/10)*10,x:Math.round((+r.x||0)*k/10)*10,y:Math.round((+r.y||0)*k/10)*10,est:!!r.estimated,note:r.note||''})).filter(r=>r.w>0&&r.d>0);
+    if(!sketchRooms.length)throw new Error('공간을 하나도 읽지 못했습니다. 방 이름과 길이를 더 또렷하게 적어 다시 찍어 보세요.');
+    drawSheet();
+  }catch(e){console.error(e);$('.sheet-bg')?.remove();const msg=/Failed to fetch|NetworkError|Load failed/i.test(e.message)?'서버에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.':e.message;alert('도면 읽기 실패: '+msg);}
+}
+function showSheet(mode){$('.sheet-bg')?.remove();const bg=document.createElement('div');bg.className='sheet-bg';
+  bg.innerHTML=`<div class="sheet"><div class="hd"><span>도면 사진 읽기</span><button data-act="sheetClose" style="font-size:22px;color:var(--muted)">✕</button></div><div class="bd" id="sheetBd">${mode==='loading'?`<div class="empty"><span class="spin"></span><div style="margin-top:10px">AI 가 평면도를 읽는 중… (10~30초)</div></div>`:''}</div><div class="ft" id="sheetFt"></div></div>`;
+  document.body.appendChild(bg);}
+function drawSheet(){if(!$('.sheet-bg'))showSheet();
+  $('#sheetBd').innerHTML=`<div class="hint" style="margin:0 0 6px">읽은 결과입니다. 이름·용도·크기(cm)를 고친 뒤 적용하세요. "추정" 표시는 숫자가 없어 비율로 계산한 변입니다.</div>`+
+    sketchRooms.map((r,i)=>`<div class="rrow">
+      <input class="inp" data-sk="name" data-i="${i}" value="${esc(r.name)}">
+      <select class="inp" data-sk="kind" data-i="${i}">${KIND_ORDER.map(k=>`<option ${r.kind===k?'selected':''}>${k}</option>`).join('')}</select>
+      <div class="sz"><div class="unit"><input inputmode="numeric" data-sk="w" data-i="${i}" value="${r.w}"><span>가로 cm</span></div><div class="unit"><input inputmode="numeric" data-sk="d" data-i="${i}" value="${r.d}"><span>세로 cm</span></div></div>
+      <div class="est">${areaBoth(r.w*r.d/10000)}${r.est?' · <b>추정</b>':''}${r.note?' · '+esc(r.note):''} <button data-act="sheetDel" data-i="${i}" style="color:var(--bad);margin-left:6px">삭제</button></div></div>`).join('');
+  $('#sheetFt').innerHTML=`<button class="btn sec" data-act="sheetApply" data-val="add" style="flex:1">기존에 추가</button><button class="btn" data-act="sheetApply" data-val="replace" style="flex:1">기존 공간 교체</button>`;}
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset.sk)return;const r=sketchRooms[+t.dataset.i];if(!r)return;
+  if(t.dataset.sk==='w'||t.dataset.sk==='d'){r[t.dataset.sk]=+t.value.replace(/[^\d]/g,'')||0;const est=t.closest('.rrow').querySelector('.est');if(est)est.firstChild.textContent=areaBoth(r.w*r.d/10000);}else r[t.dataset.sk]=t.value;});
+async function applySketch(replace){const l=getL(sketchLid);if(!l)return;
+  const rooms=sketchRooms.filter(r=>r.w>0&&r.d>0);if(!rooms.length){toast('적용할 공간이 없습니다');return;}
+  if(replace){const keep=(l.rooms||[]).filter(r=>+r.w>0&&+r.d>0);
+    if(keep.length&&!confirm(`크기가 입력된 기존 공간 ${keep.length}개를 지우고 읽은 ${rooms.length}개로 바꿉니다. 기존 공간의 사진·점검은 사라집니다. 계속할까요?`))return;
+    for(const r of (l.rooms||[])){const ps=await dbIdx('photos','roomId',r.id);for(const ph of ps){dropURL(ph.id);await dbDel('photos',ph.id);}}
+    l.rooms=[];}
+  const minx=Math.min(...rooms.map(r=>r.x)),miny=Math.min(...rooms.map(r=>r.y));
+  let offY=0;if(!replace&&(l.rooms||[]).some(r=>+r.w>0&&+r.d>0))offY=Math.max(...l.rooms.filter(r=>+r.w>0).map(r=>(+r.y||0)+(+r.d)))+100;
+  rooms.forEach(r=>{l.rooms.push({id:uid(),kind:r.kind,name:r.name||r.kind,w:r.w,d:r.d,h:230,x:r.x-minx,y:r.y-miny+offY,scores:{},memo:r.est?'도면 읽기: 일부 길이 추정'+(r.note?' · '+r.note:''):''});});
+  saveListing(l);
+  if(sketchBlob){const bmp=await loadBitmap(sketchBlob);const thumb=await resizeTo(bmp,320,.7);await dbPut('photos',{id:uid(),listingId:l.id,roomId:null,blob:sketchBlob,thumb,caption:'도면 스케치',createdAt:Date.now()});sketchBlob=null;}
+  $('.sheet-bg')?.remove();toast(`공간 ${rooms.length}개를 만들었습니다`);route();}
 $('#fileImp').addEventListener('change',e=>{if(e.target.files[0])importData(e.target.files[0]);});
 document.addEventListener('keydown',e=>{if($('#viewer')){if(e.key==='Escape')closeViewer();if(e.key==='ArrowLeft')nextPhoto(-1);if(e.key==='ArrowRight')nextPhoto(1);}});
 function applyTheme(){const th=S.settings.theme||'';if(th)document.documentElement.dataset.theme=th;else delete document.documentElement.dataset.theme;}
 
 /* ========= 시작 ========= */
-async function loadAll(){S.listings=await dbAll('listings');const kv=await dbGet('kv','settings');S.settings=Object.assign({rate:4,unit:'평',compare:[],sort:'created',theme:''},kv?kv.v:{});applyTheme();}
+async function loadAll(){S.listings=await dbAll('listings');const kv=await dbGet('kv','settings');S.settings=Object.assign({rate:4,unit:'평',compare:[],sort:'created',theme:''},kv?kv.v:{});const sc=await dbGet('kv','secret');S.secret=Object.assign({apiKey:''},sc?sc.v:{});applyTheme();}
 (async()=>{try{await openDB();await loadAll();}catch(e){document.body.innerHTML=`<div class="empty">저장소를 열 수 없습니다.<br><small>${esc(e.message)}</small><br><br>Chrome 또는 Safari 에서 열어 주세요.</div>`;return;}
   if(!location.hash)location.hash='#list';else route();
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
